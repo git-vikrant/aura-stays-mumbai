@@ -1,0 +1,13 @@
+{
+  "name": "aura-stays-mumbai-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aura Stays Mumbai - Luxury Boutique Hotel Full-Stack Platform",
+  "scripts": {
+    "build": "npm run build --prefix client",
+    "start": "npm start --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "test": "npm test --prefix server"
+  }
+}
