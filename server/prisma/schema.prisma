@@ -1,0 +1,165 @@
+// Prisma Schema for Aura Stays Mumbai Boutique Hotels
+// Configured with SQLite for deterministic local development and testing,
+// with 1-to-1 parity for PostgreSQL in staging and production (Render/Supabase/Neon).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  password     String
+  name         String
+  role         String    @default("GUEST") // GUEST, STAFF, ADMIN
+  phone        String?
+  refreshToken String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  bookings     Booking[]
+  reviews      Review[]
+
+  @@map("users")
+}
+
+model Hotel {
+  id           String    @id @default(uuid())
+  name         String
+  slug         String    @unique
+  neighborhood String    // Colaba, Bandra West, Juhu, Marine Drive, etc.
+  address      String
+  city         String    @default("Mumbai")
+  state        String    @default("Maharashtra")
+  pincode      String    @default("400001")
+  description  String
+  starRating   Float     @default(4.5)
+  images       String    // JSON array of image URLs
+  amenities    String    // JSON array of strings
+  contactEmail String
+  contactPhone String
+  checkInTime  String    @default("14:00")
+  checkOutTime String    @default("11:00")
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  rooms        Room[]
+  bookings     Booking[]
+  enquiries    Enquiry[]
+  reviews      Review[]
+
+  @@map("hotels")
+}
+
+model Room {
+  id               String    @id @default(uuid())
+  hotelId          String
+  roomNumber       String
+  name             String    // Property-specific name
+  canonicalType    String    // Normalized: DELUXE_ROOM, EXECUTIVE_SUITE, HERITAGE_SUITE, PRESIDENTIAL_VILLA
+  basePriceINR     Float
+  basePriceUSD     Float
+  capacity         Int       @default(2)
+  bedConfiguration String    @default("1 King Bed")
+  sizeSqFt         Int       @default(450)
+  amenities        String    // JSON array of strings
+  images           String    // JSON array of image URLs
+  status           String    @default("AVAILABLE") // AVAILABLE, OCCUPIED, MAINTENANCE
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  hotel            Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  bookings         Booking[]
+
+  @@unique([hotelId, roomNumber])
+  @@map("rooms")
+}
+
+model Booking {
+  id               String    @id @default(uuid())
+  bookingReference String    @unique // e.g. AURA-MUM-83921
+  userId           String?
+  guestName        String
+  guestEmail       String
+  guestPhone       String
+  hotelId          String
+  roomId           String
+  checkInDate      DateTime
+  checkOutDate     DateTime
+  nights           Int
+  guestCount       Int       @default(1)
+  currency         String    @default("INR") // INR or USD
+  totalAmount      Float
+  paymentStatus    String    @default("PENDING") // PENDING, PAID, REFUNDED
+  bookingStatus    String    @default("CONFIRMED") // CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED
+  specialRequests  String?
+  source           String    @default("DIRECT_WEB") // DIRECT_WEB, FRONT_DESK, MIGRATED_RECORD
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  hotel            Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  room             Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([checkInDate, checkOutDate])
+  @@index([hotelId])
+  @@map("bookings")
+}
+
+model Enquiry {
+  id            String    @id @default(uuid())
+  hotelId       String?
+  name          String
+  email         String
+  phone         String?
+  category      String    @default("GENERAL") // GENERAL, BOOKING_INQUIRY, EVENT_WEDDING, CORPORATE, FEEDBACK
+  subject       String
+  message       String
+  status        String    @default("NEW") // NEW, IN_PROGRESS, RESOLVED
+  staffNotes    String?
+  attachmentUrl String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  hotel         Hotel?    @relation(fields: [hotelId], references: [id], onDelete: SetNull)
+
+  @@map("enquiries")
+}
+
+model Review {
+  id         String    @id @default(uuid())
+  hotelId    String
+  userId     String?
+  guestName  String
+  rating     Int       // 1 - 5
+  title      String
+  comment    String
+  stayDate   DateTime?
+  isVerified Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  hotel      Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("reviews")
+}
+
+model JobLog {
+  id        String    @id @default(uuid())
+  type      String    // EMAIL_CONFIRMATION, METRIC_CALCULATION, INVENTORY_AUDIT
+  payload   String    // JSON string
+  status    String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  attempts  Int       @default(0)
+  error     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("job_logs")
+}

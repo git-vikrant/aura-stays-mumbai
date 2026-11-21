@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: aura-stays-mumbai-api
+    env: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npx prisma generate && npx prisma db push && node src/data/seed.js
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        value: "file:./dev.db" # Or bind to Render PostgreSQL via: fromDatabase
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_URL
+        value: "https://aura-stays-mumbai.vercel.app"
+      - key: EXCHANGE_RATE_USD_TO_INR
+        value: "84"

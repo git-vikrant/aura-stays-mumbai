@@ -1,0 +1,163 @@
+// Prisma Schema for Aura Stays Mumbai - PostgreSQL Production Target (Render/Supabase/Neon)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  password     String
+  name         String
+  role         String    @default("GUEST") // GUEST, STAFF, ADMIN
+  phone        String?
+  refreshToken String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  bookings     Booking[]
+  reviews      Review[]
+
+  @@map("users")
+}
+
+model Hotel {
+  id           String    @id @default(uuid())
+  name         String
+  slug         String    @unique
+  neighborhood String
+  address      String
+  city         String    @default("Mumbai")
+  state        String    @default("Maharashtra")
+  pincode      String    @default("400001")
+  description  String
+  starRating   Float     @default(4.5)
+  images       String
+  amenities    String
+  contactEmail String
+  contactPhone String
+  checkInTime  String    @default("14:00")
+  checkOutTime String    @default("11:00")
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  rooms        Room[]
+  bookings     Booking[]
+  enquiries    Enquiry[]
+  reviews      Review[]
+
+  @@map("hotels")
+}
+
+model Room {
+  id               String    @id @default(uuid())
+  hotelId          String
+  roomNumber       String
+  name             String
+  canonicalType    String
+  basePriceINR     Float
+  basePriceUSD     Float
+  capacity         Int       @default(2)
+  bedConfiguration String    @default("1 King Bed")
+  sizeSqFt         Int       @default(450)
+  amenities        String
+  images           String
+  status           String    @default("AVAILABLE")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  hotel            Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  bookings         Booking[]
+
+  @@unique([hotelId, roomNumber])
+  @@map("rooms")
+}
+
+model Booking {
+  id               String    @id @default(uuid())
+  bookingReference String    @unique
+  userId           String?
+  guestName        String
+  guestEmail       String
+  guestPhone       String
+  hotelId          String
+  roomId           String
+  checkInDate      DateTime
+  checkOutDate     DateTime
+  nights           Int
+  guestCount       Int       @default(1)
+  currency         String    @default("INR")
+  totalAmount      Float
+  paymentStatus    String    @default("PENDING")
+  bookingStatus    String    @default("CONFIRMED")
+  specialRequests  String?
+  source           String    @default("DIRECT_WEB")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  hotel            Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  room             Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([checkInDate, checkOutDate])
+  @@index([hotelId])
+  @@map("bookings")
+}
+
+model Enquiry {
+  id            String    @id @default(uuid())
+  hotelId       String?
+  name          String
+  email         String
+  phone         String?
+  category      String    @default("GENERAL")
+  subject       String
+  message       String
+  status        String    @default("NEW")
+  staffNotes    String?
+  attachmentUrl String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  hotel         Hotel?    @relation(fields: [hotelId], references: [id], onDelete: SetNull)
+
+  @@map("enquiries")
+}
+
+model Review {
+  id         String    @id @default(uuid())
+  hotelId    String
+  userId     String?
+  guestName  String
+  rating     Int
+  title      String
+  comment    String
+  stayDate   DateTime?
+  isVerified Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  hotel      Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("reviews")
+}
+
+model JobLog {
+  id        String    @id @default(uuid())
+  type      String
+  payload   String
+  status    String    @default("PENDING")
+  attempts  Int       @default(0)
+  error     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("job_logs")
+}
